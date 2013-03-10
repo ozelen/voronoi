@@ -21,6 +21,7 @@
         var delaunay = false;
         var canv = null;
         var colors = [];
+        var cells, edges;
 
         function mouseX(e){	return e.clientX - e.target.offsetLeft;}
         function mouseY(e){	return e.clientY - e.target.offsetTop; }
@@ -29,23 +30,23 @@
         {
             canv = document.getElementById("c");
         //  canv.onmousemove = onMM;
-            canv.onclick = onClick;
+        //  canv.onclick = onClick;
             c = canv.getContext("2d");
             w = canv.width = window.innerWidth;
             h = canv.height = window.innerHeight;
             points = [];
             v = new Voronoi();
 
-            for(i=0; i<2000; i++)
+            for(i=0; i<100; i++)
             {
                 points.push(new Point(Math.random()*w, Math.random()*h));
                 colors.push(rndCol());
             }
 
-            for(var i = 0; i<3; i++){
+            for(var i = 0; i<=5; i++){
                 improvePoints();
             }
-            
+
             redraw();
         }
 
@@ -72,12 +73,21 @@
             redraw();
         }
 
-        function drawPoint(x,y,color) {
+        function drawPoint(x,y,color,text) {
+            text = text || '';
+            var size = text ? 10 : 3;
             c.fillStyle = color;
             c.beginPath();
-            c.arc(x, y, 2, 0, Math.PI*2, true);
+            c.arc(x, y, size, 0, Math.PI*2, true);
             c.closePath();
             c.fill();
+            if(text){
+                c.fillStyle = '#fff';
+                c.textBaseline="middle";
+                c.textAlign="center";
+                c.fillText(text, x, y);
+            }
+
         }
 
         function compute() {
@@ -86,28 +96,86 @@
             cells = v.GetCells();
         }
 
+        function chooseCells(cells){
+            var chosen = [], j=0;
+            // choose polygons within measures
+            for(var i in cells) {
+                var cell = cells[i];
+                var center = cells[i].centroid;
+                if(center.x > 100 && center.x < 800 && center.y > 100 && center.y < 400){
+                    chosen[j++] = i;
+                }
+            }
+            return chosen;
+        }
+
+        function fillChosen(){
+            var
+                    verticesIndex = [],
+                    chosen = chooseCells(cells),
+                    i = 0,
+                    l = 0;
+
+            for (i in chosen){
+                var cell = cells[chosen[i]];
+                var p = cell.vertices;
+                if(p.length == 0) continue;
+                if(p.length == 4) {
+                    //    console.log(cells[i].vs);
+                    //    console.log(p);
+                }
+                c.fillStyle = "#094"; // colors[i];
+                c.beginPath();
+                c.moveTo(p[0].x, p[0].y);
+                for(var j=1; j<p.length; j++) c.lineTo(p[j].x, p[j].y);
+                c.closePath();
+                c.fill();
+
+                c.fillStyle = "#000";
+                c.fillText("("+i+")", cell.centroid.x+20, cell.centroid.y)
+                for (var f in cell.vertices){
+                    var vertex = cell.vertices[f];
+                    verticesIndex.push({cell: chosen[i], vertex: f, x: vertex.x, y: vertex.y});
+                    //drawPoint(vertex.x, vertex.y, "red", f);
+                }
+            }
+
+            for (var i in cells){
+                var cell = cells[i];
+                c.fillStyle = "#000";
+                c.fillText(i, cell.centroid.x, cell.centroid.y)
+            }
+
+            for (var v_i = 0; v_i < verticesIndex.length; v_i++) {
+                if(!verticesIndex[v_i]) continue;
+                var dubs = [];
+                for (var v_j = 0; v_j < verticesIndex.length; v_j++) {
+                    if(!verticesIndex[v_j] || !verticesIndex[v_i] || v_i == v_j || verticesIndex[v_i].cell == verticesIndex[v_j].cell) continue;
+                    if(verticesIndex[v_i].x == verticesIndex[v_j].x && verticesIndex[v_i].y == verticesIndex[v_j].y){
+                        dubs.push(v_j);
+                    }
+                }
+                if(dubs.length==2){ // if there's 2 overlapping points is found
+                    delete verticesIndex[v_i];
+                    for(var d in dubs){
+                        delete verticesIndex[dubs[d]];
+                    }
+                }
+                if(dubs.length == 1){
+                //    outwardStroke
+                }
+            }
+
+            for(var i in verticesIndex){
+                if(!verticesIndex[i]) continue;
+                drawPoint(verticesIndex[i].x, verticesIndex[i].y, 'red', i);
+            }
+
+        }
+
         function redraw(params){
             c.fillStyle = "#ffffff";
             c.fillRect (0, 0, w, h);
-
-            /*
-                for(var i=0; i<cells.length; i++)
-                {
-                    var p = cells[i].vertices;
-                    if(p.length == 0) continue;
-                    if(p.length == 4)
-                    {
-                        console.log(cells[i].vs);
-                        console.log(p);
-                    }
-                    c.fillStyle = colors[i];
-                    c.beginPath();
-                    c.moveTo(p[0].x, p[0].y);
-                    for(var j=1; j<p.length; j++) c.lineTo(p[j].x, p[j].y);
-                    c.closePath();
-                    c.fill();
-                }
-            */
 
             if(delaunay){
                 c.lineWidth = 3;
@@ -124,7 +192,7 @@
             }
 
             if(voronoi){
-                c.lineWidth = 1;
+                c.lineWidth = 0.5;
                 c.strokeStyle = "#000";
                 for(i=0; i<edges.length; i++)
                 {
@@ -137,6 +205,14 @@
                 }
             }
 
+            fillChosen();
+
+            /*
+            // trace shape
+            c.lineWidth = 1;
+            c.strokeStyle = "#fff";
+            c.strokeRect(300,300,300,300);
+            */
             /*
             // trace points
             for(i=0; i<points.length; i++)
@@ -167,6 +243,16 @@
             }
             return color;
         }
+
+        function showOrder(i){
+            i = i || 0 ;
+            var cc;
+            if(cc = v.cells[i]){
+                drawPoint(cc.centroid.x, cc.centroid.y, "#ccc")
+                setTimeout(function(){showOrder(i+1)},1);
+            } else return;
+        }
+
     </script>
 </head>
 
@@ -176,7 +262,7 @@
     <label for="cvor">Voronoi</label></br>
     <input type="checkbox" onclick="delaunay = this.checked; redraw();" id="cdel"/>
     <label for="cdel">Dleaunay</label></br>
-    <input type="button" value="Improve" onclick="improvePoints(); redraw()" style="width:100px; height:30px;"/>
+    <input type="button" value="Order" onclick="showOrder();" style="width:100px; height:30px;"/>
     <input type="button" value="Reset" onclick="resetPoints();" style="width:100px; height:30px;"/>
 </form>
 <canvas id="c"> </canvas>
