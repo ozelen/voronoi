@@ -22,6 +22,7 @@
         var canv = null;
         var colors = [];
         var cells, edges;
+        var verticesIndex = [];
 
         function mouseX(e){	return e.clientX - e.target.offsetLeft;}
         function mouseY(e){	return e.clientY - e.target.offsetTop; }
@@ -111,7 +112,6 @@
 
         function fillChosen(){
             var
-                    verticesIndex = [],
                     chosen = chooseCells(cells),
                     i = 0,
                     l = 0;
@@ -162,13 +162,18 @@
                     }
                 }
                 if(dubs.length == 1){
-                //    outwardStroke
+                //    verticesIndex[v_i+1].next = verticesIndex[dubs[d]];
+                //    verticesIndex[dubs[d]].next = verticesIndex[dubs[d]-1];
+                //    delete verticesIndex[v_i];
+                    drawPoint(verticesIndex[dubs[0]].x+20, verticesIndex[dubs[0]].y, 'black', verticesIndex[dubs[0]].vertex);
                 }
+                if(verticesIndex[v_i])
+                    drawPoint(verticesIndex[v_i].x, verticesIndex[v_i].y, 'red', verticesIndex[v_i].vertex);
             }
 
             for(var i in verticesIndex){
                 if(!verticesIndex[i]) continue;
-                drawPoint(verticesIndex[i].x, verticesIndex[i].y, 'red', i);
+            //    drawPoint(verticesIndex[i].x, verticesIndex[i].y, 'red', i);
             }
 
         }
