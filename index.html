@@ -38,13 +38,13 @@
             points = [];
             v = new Voronoi();
 
-            for(i=0; i<100; i++)
+            for(i=0; i<200; i++)
             {
                 points.push(new Point(Math.random()*w, Math.random()*h));
                 colors.push(rndCol());
             }
 
-            for(var i = 0; i<=5; i++){
+            for(var i = 0; i<=15; i++){
                 improvePoints();
             }
 
@@ -103,7 +103,7 @@
             for(var i in cells) {
                 var cell = cells[i];
                 var center = cells[i].centroid;
-                if(center.x > 100 && center.x < 800 && center.y > 100 && center.y < 400){
+                if(300 > center.distance(new Point(600, 400), center)){
                     chosen[j++] = i;
                 }
             }
@@ -114,7 +114,8 @@
             var
                     chosen = chooseCells(cells),
                     i = 0,
-                    l = 0;
+                    l = 0,
+                    verticesByCells = [];
 
             for (i in chosen){
                 var cell = cells[chosen[i]];
@@ -133,9 +134,14 @@
 
                 c.fillStyle = "#000";
                 c.fillText("("+i+")", cell.centroid.x+20, cell.centroid.y)
-                for (var f in cell.vertices){
+                for (var f = 0; f < cell.vertices.length; f++){
                     var vertex = cell.vertices[f];
-                    verticesIndex.push({cell: chosen[i], vertex: f, x: vertex.x, y: vertex.y});
+
+                    var next = (f < cell.vertices.length-1) ? cell.vertices[f+1] : cell.vertices[0];
+                    var prev = (f > 0) ? cell.vertices[f-1] : cell.vertices[cell.vertices.length-1];
+
+                    verticesIndex.push({id: verticesIndex.length, next: next, prev: prev, cell: chosen[i], vertex: f, x: vertex.x, y: vertex.y});
+                    //console.log(verticesIndex[verticesIndex.length-1]);
                     //drawPoint(vertex.x, vertex.y, "red", f);
                 }
             }
@@ -147,6 +153,7 @@
             }
 
             for (var v_i = 0; v_i < verticesIndex.length; v_i++) {
+                //console.log(verticesIndex[v_i])
                 if(!verticesIndex[v_i]) continue;
                 var dubs = [];
                 for (var v_j = 0; v_j < verticesIndex.length; v_j++) {
@@ -155,28 +162,23 @@
                         dubs.push(v_j);
                     }
                 }
-                if(dubs.length==2){ // if there's 2 overlapping points is found
-                    delete verticesIndex[v_i];
-                    for(var d in dubs){
-                        delete verticesIndex[dubs[d]];
-                    }
+                verticesIndex[v_i].neighbours = dubs.length;
+
+                if(dubs.length == 1) {
+                    verticesIndex[v_i].neighbour = verticesIndex[dubs[0]];
                 }
-                if(dubs.length == 1){
-                //    verticesIndex[v_i+1].next = verticesIndex[dubs[d]];
-                //    verticesIndex[dubs[d]].next = verticesIndex[dubs[d]-1];
-                //    delete verticesIndex[v_i];
-                    drawPoint(verticesIndex[dubs[0]].x+20, verticesIndex[dubs[0]].y, 'black', verticesIndex[dubs[0]].vertex);
-                }
-                if(verticesIndex[v_i])
-                    drawPoint(verticesIndex[v_i].x, verticesIndex[v_i].y, 'red', verticesIndex[v_i].vertex);
+
+                //drawPoint(verticesIndex[v_i].x, verticesIndex[v_i].y, 'red', verticesIndex[v_i].neighbours+'');
+
             }
 
             for(var i in verticesIndex){
                 if(!verticesIndex[i]) continue;
-            //    drawPoint(verticesIndex[i].x, verticesIndex[i].y, 'red', i);
+                //drawPoint(verticesIndex[i].next.x, verticesIndex[i].next.y, 'red', verticesIndex[i].cell);
             }
-
         }
+
+
 
         function redraw(params){
             c.fillStyle = "#ffffff";
@@ -212,12 +214,7 @@
 
             fillChosen();
 
-            /*
-            // trace shape
-            c.lineWidth = 1;
-            c.strokeStyle = "#fff";
-            c.strokeRect(300,300,300,300);
-            */
+
             /*
             // trace points
             for(i=0; i<points.length; i++)
@@ -254,7 +251,7 @@
             var cc;
             if(cc = v.cells[i]){
                 drawPoint(cc.centroid.x, cc.centroid.y, "#ccc")
-                setTimeout(function(){showOrder(i+1)},1);
+                setTimeout(function(){showOrder(i+1)},100);
             } else return;
         }
 
