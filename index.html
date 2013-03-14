@@ -15,257 +15,31 @@
     <script type="text/javascript" src="lib/VQueue.js"></script>
     <script type="text/javascript" src="lib/VPolygon.js"></script>
     <script type="text/javascript" src="lib/Voronoi.js"></script>
-
+    <script type="application/javascript" src="islands/generate.js"></script>
     <script type="application/javascript">
-        var voronoi = true;
-        var delaunay = false;
-        var canv = null;
-        var colors = [];
-        var cells, edges;
-        var verticesIndex = [];
-
-        function mouseX(e){	return e.clientX - e.target.offsetLeft;}
-        function mouseY(e){	return e.clientY - e.target.offsetTop; }
-
-        function onLoad()
-        {
-            canv = document.getElementById("c");
-        //  canv.onmousemove = onMM;
-        //  canv.onclick = onClick;
-            c = canv.getContext("2d");
-            w = canv.width = window.innerWidth;
-            h = canv.height = window.innerHeight;
-            points = [];
-            v = new Voronoi();
-
-            for(i=0; i<200; i++)
-            {
-                points.push(new Point(Math.random()*w, Math.random()*h));
-                colors.push(rndCol());
-            }
-
-            for(var i = 0; i<=15; i++){
-                improvePoints();
-            }
-
-            redraw();
-        }
-
-        function onMM(e)
-        {
-            var last = points[points.length-1];
-            last.x = mouseX(e);
-            last.y = mouseY(e);
-            redraw();
-        }
-
-        function onClick(e)
-        {
-            var last = points[points.length-1];
-            last.x += Math.random();
-            last.y += Math.random();
-            points.push( new Point(mouseX(e), mouseY(e)));
-            colors.push(rndCol());
-            redraw();
-        }
-        function resetPoints()
-        {
-            points = [points[points.length-1]];
-            redraw();
-        }
-
-        function drawPoint(x,y,color,text) {
-            text = text || '';
-            var size = text ? 10 : 3;
-            c.fillStyle = color;
-            c.beginPath();
-            c.arc(x, y, size, 0, Math.PI*2, true);
-            c.closePath();
-            c.fill();
-            if(text){
-                c.fillStyle = '#fff';
-                c.textBaseline="middle";
-                c.textAlign="center";
-                c.fillText(text, x, y);
-            }
-
-        }
-
-        function compute() {
-            v.Compute(points, w, h);
-            edges = v.GetEdges();
-            cells = v.GetCells();
-        }
-
-        function chooseCells(cells){
-            var chosen = [], j=0;
-            // choose polygons within measures
-            for(var i in cells) {
-                var cell = cells[i];
-                var center = cells[i].centroid;
-                if(300 > center.distance(new Point(600, 400), center)){
-                    chosen[j++] = i;
-                }
-            }
-            return chosen;
-        }
-
-        function fillChosen(){
-            var
-                    chosen = chooseCells(cells),
-                    i = 0,
-                    l = 0,
-                    verticesByCells = [];
-
-            for (i in chosen){
-                var cell = cells[chosen[i]];
-                var p = cell.vertices;
-                if(p.length == 0) continue;
-                if(p.length == 4) {
-                    //    console.log(cells[i].vs);
-                    //    console.log(p);
-                }
-                c.fillStyle = "#094"; // colors[i];
-                c.beginPath();
-                c.moveTo(p[0].x, p[0].y);
-                for(var j=1; j<p.length; j++) c.lineTo(p[j].x, p[j].y);
-                c.closePath();
-                c.fill();
-
-                c.fillStyle = "#000";
-                c.fillText("("+i+")", cell.centroid.x+20, cell.centroid.y)
-                for (var f = 0; f < cell.vertices.length; f++){
-                    var vertex = cell.vertices[f];
-
-                    var next = (f < cell.vertices.length-1) ? cell.vertices[f+1] : cell.vertices[0];
-                    var prev = (f > 0) ? cell.vertices[f-1] : cell.vertices[cell.vertices.length-1];
-
-                    verticesIndex.push({id: verticesIndex.length, next: next, prev: prev, cell: chosen[i], vertex: f, x: vertex.x, y: vertex.y});
-                    //console.log(verticesIndex[verticesIndex.length-1]);
-                    //drawPoint(vertex.x, vertex.y, "red", f);
-                }
-            }
-
-            for (var i in cells){
-                var cell = cells[i];
-                c.fillStyle = "#000";
-                c.fillText(i, cell.centroid.x, cell.centroid.y)
-            }
-
-            for (var v_i = 0; v_i < verticesIndex.length; v_i++) {
-                //console.log(verticesIndex[v_i])
-                if(!verticesIndex[v_i]) continue;
-                var dubs = [];
-                for (var v_j = 0; v_j < verticesIndex.length; v_j++) {
-                    if(!verticesIndex[v_j] || !verticesIndex[v_i] || v_i == v_j || verticesIndex[v_i].cell == verticesIndex[v_j].cell) continue;
-                    if(verticesIndex[v_i].x == verticesIndex[v_j].x && verticesIndex[v_i].y == verticesIndex[v_j].y){
-                        dubs.push(v_j);
-                    }
-                }
-                verticesIndex[v_i].neighbours = dubs.length;
-
-                if(dubs.length == 1) {
-                    verticesIndex[v_i].neighbour = verticesIndex[dubs[0]];
-                }
-
-                //drawPoint(verticesIndex[v_i].x, verticesIndex[v_i].y, 'red', verticesIndex[v_i].neighbours+'');
-
-            }
-
-            for(var i in verticesIndex){
-                if(!verticesIndex[i]) continue;
-                //drawPoint(verticesIndex[i].next.x, verticesIndex[i].next.y, 'red', verticesIndex[i].cell);
-            }
-        }
-
-
-
-        function redraw(params){
-            c.fillStyle = "#ffffff";
-            c.fillRect (0, 0, w, h);
-
-            if(delaunay){
-                c.lineWidth = 3;
-                c.strokeStyle = "#888888";
-                for(i=0; i<edges.length; i++)
-                {
-                    var e = edges[i];
-                    c.beginPath();
-                    c.moveTo(e.left.x, e.left.y);
-                    c.lineTo(e.right.x, e.right.y);
-                    c.closePath();
-                    c.stroke();
-                }
-            }
-
-            if(voronoi){
-                c.lineWidth = 0.5;
-                c.strokeStyle = "#000";
-                for(i=0; i<edges.length; i++)
-                {
-                    var e = edges[i];
-                    c.beginPath();
-                    c.moveTo(e.start.x, e.start.y);
-                    c.lineTo(e.end.x, e.end.y);
-                    c.closePath();
-                    c.stroke();
-                }
-            }
-
-            fillChosen();
-
-
-            /*
-            // trace points
-            for(i=0; i<points.length; i++)
-            {
-                var p = points[i];
-                drawPoint(p.x, p.y, "rgb(255,0,0)");
-            }
-
-            for(var i in v.cells){
-                var cent = v.cells[i].centroid;
-                drawPoint(cent.x,cent.y,"blue")
-            }
-            */
-        }
-
-        function improvePoints(){
-            compute();
-            for(var i in v.cells){
-                points[i] = v.cells[i].centroid;
-            }
-        }
-
-        function rndCol() {
-            var letters = '0123456789ABCDEF'.split('');
-            var color = '#';
-            for (var i = 0; i < 6; i++ ) {
-                color += letters[Math.round(Math.random() * 15)];
-            }
-            return color;
-        }
-
-        function showOrder(i){
-            i = i || 0 ;
-            var cc;
-            if(cc = v.cells[i]){
-                drawPoint(cc.centroid.x, cc.centroid.y, "#ccc")
-                setTimeout(function(){showOrder(i+1)},100);
-            } else return;
-        }
-
+        var island;
+        window.onload = function(){
+            island = new Island("c", {cells:500, naturalize:20});
+            island
+                    .add({
+                        x: 500,
+                        y: 400,
+                        r: 300
+                    })
+                };
     </script>
 </head>
 
-<body onload="onLoad()" >
+<body>
 <form style="position:absolute; z-index:1; margin:10px">
-    <input type="checkbox" checked="yes" onclick="voronoi = this.checked; redraw();" id="cvor"/>
+    <input type="checkbox" onclick="island.trace.voronoi();" id="cvor"/>
     <label for="cvor">Voronoi</label></br>
-    <input type="checkbox" onclick="delaunay = this.checked; redraw();" id="cdel"/>
-    <label for="cdel">Dleaunay</label></br>
+    <input type="checkbox" onclick="island.trace.delaunay();" id="cdel"/>
+    <label for="cdel">Delaunay</label></br>
     <input type="button" value="Order" onclick="showOrder();" style="width:100px; height:30px;"/>
-    <input type="button" value="Reset" onclick="resetPoints();" style="width:100px; height:30px;"/>
+    <input type="button" value="Reset" onclick="island.reset();" style="width:100px; height:30px;"/>
+
+    <input type="text">
 </form>
 <canvas id="c"> </canvas>
 </body>
