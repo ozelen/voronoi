@@ -32,14 +32,19 @@
 
 <body>
 <form style="position:absolute; z-index:1; margin:10px">
-    <input type="checkbox" onclick="island.trace.voronoi();" id="cvor"/>
-    <label for="cvor">Voronoi</label></br>
-    <input type="checkbox" onclick="island.trace.delaunay();" id="cdel"/>
-    <label for="cdel">Delaunay</label></br>
-    <input type="button" value="Order" onclick="showOrder();" style="width:100px; height:30px;"/>
-    <input type="button" value="Reset" onclick="island.reset();" style="width:100px; height:30px;"/>
 
-    <input type="text">
+    <input type="button" onclick="island.trace.voronoi();" id="cvor" value="Voronoi"/>
+    <input type="button" onclick="island.trace.delaunay();" id="cdel" value="Delaunay"/>
+
+
+    <input type="button" value="Order" onclick="island.showOrder();"/>
+    <input type="button" value="Reset" onclick="island.reset();"/>
+
+    R:<input id="r" type="text">
+    X:<input id="x" type="text">
+    Y:<input id="y" type="text">
+    <input type="button" value="Add Island" onclick="island.add({x:document.getElementById('x').value, y:document.getElementById('y').value, r:document.getElementById('r').value})">
+
 </form>
 <canvas id="c"> </canvas>
 </body>
