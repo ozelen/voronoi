@@ -10,13 +10,12 @@ function Island (canvas_id, settings) {
         verticesIndex = [],
         v = new Voronoi(),
         c = canvas.getContext("2d"),
-        w = canvas.width = window.innerWidth,
-        h = canvas.height = window.innerHeight,
+        w = canvas.width = 500,  // = window.innerWidth,
+        h = canvas.height = 500, // = window.innerHeight,
         points = [],
 
         init = function (new_settings) {
             if(new_settings) for(var i in new_settings){ settings[i]=new_settings[i]; }
-            canvas = document.getElementById(canvas_id);
             cellsNumber = settings.cells || 100;
             pointsImprove = settings.naturalize || 10;
             debugMode = settings.debug || false;
@@ -207,40 +206,53 @@ function Island (canvas_id, settings) {
                     c.fillText(text, x, y);
                 }
             }
-            function delaunay(){
-                c.lineWidth = 3;
-                c.strokeStyle = "#888888";
-                for(i=0; i<edges.length; i++){
-                    var e = edges[i];
-                    c.beginPath();
-                    c.moveTo(e.left.x, e.left.y);
-                    c.lineTo(e.right.x, e.right.y);
-                    c.closePath();
-                    c.stroke();
-                }
-                //redraw();
+
+            function edge(start, end){
+                c.lineWidth = 0.1;
+                c.strokeStyle = "#000";
+                c.beginPath();
+                c.moveTo(start.x, start.y);
+                c.lineTo(end.x, end.y);
+                c.closePath();
+                c.stroke();
             }
 
-            function voronoi(){
+            function _delaunay(i){
+
+                i = i || 0;
+                var e = edges[i];
+                if(!e)return;
+
                 c.lineWidth = 0.5;
                 c.strokeStyle = "#000";
-                for(i=0; i<edges.length; i++)
-                {
-                    var e = edges[i];
-                    c.beginPath();
-                    c.moveTo(e.start.x, e.start.y);
-                    c.lineTo(e.end.x, e.end.y);
-                    c.closePath();
-                    c.stroke();
-                }
+                var e = edges[i];
+                c.beginPath();
+                c.moveTo(e.left.x, e.left.y);
+                c.lineTo(e.right.x, e.right.y);
+                c.closePath();
+                c.stroke();
                 //redraw();
             }
 
+            function traceEdges (a, b, delay){
+                (function recursive(i){
+                    var e = edges[i];
+                    if(e)
+                        edge(e[a], e[b]);
+                    if(i < edges.length)
+                        if(delay)
+                            setTimeout(function(){recursive(i+1)}, delay);
+                        else
+                            recursive(i+1);
+                })(0);
+            };
+
             var api = {
-                text:  traceText,
-                point: tracePoint,
-                delaunay : delaunay,
-                voronoi : voronoi
+                text        : traceText,
+                point       : tracePoint,
+                delaunay    : function (){traceEdges('left', 'right')},
+                voronoi     : function (){traceEdges('start', 'end')},
+                order       : showOrder
             }
 
         //    if(!debugMode) for(var i in api) { api[i] = function(){}; } // does nothing if !debug

@@ -22,28 +22,36 @@
             island = new Island("c", {cells:500, naturalize:20});
             island
                     .add({
-                        x: 500,
-                        y: 400,
-                        r: 300
+                        x: 250,
+                        y: 250,
+                        r: 200
                     })
                 };
     </script>
 </head>
 
 <body>
-<form style="position:absolute; z-index:1; margin:10px">
+<form style="position:absolute; margin-left: 500px">
+    <fieldset>
+        <legend>Trace</legend>
+        <input type="button" onclick="island.trace.voronoi();" id="cvor" value="Voronoi"/>
+        <input type="button" onclick="island.trace.delaunay();" id="cdel" value="Delaunay"/>
+        <input type="button" onclick="island.trace.order();" value="Show Order">
+    </fieldset>
 
-    <input type="button" onclick="island.trace.voronoi();" id="cvor" value="Voronoi"/>
-    <input type="button" onclick="island.trace.delaunay();" id="cdel" value="Delaunay"/>
+    <fieldset>
+        <legend>Compute</legend>
+        <input type="button" value="Rebuild" onclick="island.init({cells:2000, naturalize:document.getElementById('naturalize').value}).reset();">
+        <input type="button" value="Reset" onclick="island.reset();"/>
+    </fieldset>
+    <fieldset><legend>Add Island</legend>
+        R:<input id="r" type="text"><br>
+        X:<input id="x" type="text"><br>
+        Y:<input id="y" type="text"><br>
+        <br>
+        <input type="button" value="Add Island" onclick="island.add({x:document.getElementById('x').value, y:document.getElementById('y').value, r:document.getElementById('r').value})">
+    </fieldset>
 
-
-    <input type="button" value="Order" onclick="island.showOrder();"/>
-    <input type="button" value="Reset" onclick="island.reset();"/>
-
-    R:<input id="r" type="text">
-    X:<input id="x" type="text">
-    Y:<input id="y" type="text">
-    <input type="button" value="Add Island" onclick="island.add({x:document.getElementById('x').value, y:document.getElementById('y').value, r:document.getElementById('r').value})">
 
 </form>
 <canvas id="c"> </canvas>
