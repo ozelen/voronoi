@@ -124,9 +124,8 @@ function Island (canvas_id, settings) {
                 }
             }
 
-            for (var i in cells){
-                //trace.text(i, cells[i].centroid.x, cells[i].centroid.y);
-            }
+            if(debugMode)
+                for (var i in cells){ trace.text(i, cells[i].centroid.x, cells[i].centroid.y); }
 
             for (var v_i = 0; v_i < verticesIndex.length; v_i++) {
                 //console.log(verticesIndex[v_i])
@@ -217,28 +216,12 @@ function Island (canvas_id, settings) {
                 c.stroke();
             }
 
-            function _delaunay(i){
-
-                i = i || 0;
-                var e = edges[i];
-                if(!e)return;
-
-                c.lineWidth = 0.5;
-                c.strokeStyle = "#000";
-                var e = edges[i];
-                c.beginPath();
-                c.moveTo(e.left.x, e.left.y);
-                c.lineTo(e.right.x, e.right.y);
-                c.closePath();
-                c.stroke();
-                //redraw();
-            }
-
             function traceEdges (a, b, delay){
                 (function recursive(i){
                     var e = edges[i];
-                    if(e)
+                    if(e){
                         edge(e[a], e[b]);
+                    }
                     if(i < edges.length)
                         if(delay)
                             setTimeout(function(){recursive(i+1)}, delay);
@@ -252,6 +235,10 @@ function Island (canvas_id, settings) {
                 point       : tracePoint,
                 delaunay    : function (){traceEdges('left', 'right')},
                 voronoi     : function (){traceEdges('start', 'end')},
+                custom     : function (){
+                    traceEdges('start', 'right');
+                    traceEdges('left', 'end');
+                },
                 order       : showOrder
             }
 
@@ -264,7 +251,8 @@ function Island (canvas_id, settings) {
             init  : init,
             trace : trace,
             reset : resetPoints,
-            add   : addIsland
+            add   : addIsland,
+            v     : v
         };
 
     constructor();

@@ -19,7 +19,7 @@
     <script type="application/javascript">
         var island;
         window.onload = function(){
-            island = new Island("c", {cells:500, naturalize:20});
+                island = new Island("c", {cells:100, naturalize:7});
             island
                     .add({
                         x: 250,
@@ -36,12 +36,13 @@
         <legend>Trace</legend>
         <input type="button" onclick="island.trace.voronoi();" id="cvor" value="Voronoi"/>
         <input type="button" onclick="island.trace.delaunay();" id="cdel" value="Delaunay"/>
+        <input type="button" onclick="island.trace.custom();" id="cdel" value="Custom"/>
         <input type="button" onclick="island.trace.order();" value="Show Order">
     </fieldset>
 
     <fieldset>
         <legend>Compute</legend>
-        <input type="button" value="Rebuild" onclick="island.init({cells:2000, naturalize:document.getElementById('naturalize').value}).reset();">
+        <input type="button" value="Rebuild" onclick="island.init({cells:10, naturalize:document.getElementById('naturalize').value}).reset();">
         <input type="button" value="Reset" onclick="island.reset();"/>
     </fieldset>
     <fieldset><legend>Add Island</legend>
