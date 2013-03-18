@@ -114,14 +114,35 @@ function Island (canvas_id, settings) {
 
                 for (var f = 0; f < cell.vertices.length; f++){
                     var vertex = cell.vertices[f];
-
                     var next = (f < cell.vertices.length-1) ? cell.vertices[f+1] : cell.vertices[0];
                     var prev = (f > 0) ? cell.vertices[f-1] : cell.vertices[cell.vertices.length-1];
-
                     verticesIndex.push({id: verticesIndex.length, next: next, prev: prev, cell: chosen[i], vertex: f, x: vertex.x, y: vertex.y});
                     //console.log(verticesIndex[verticesIndex.length-1]);
                     //drawPoint(vertex.x, vertex.y, "red", f);
+
+                    for(var e = 0; e < edges.length; e++){
+                        if(
+                            (edges[e].start == cell.vertices[f] && edges[e].end == cell.vertices[f+1])
+                          ||(edges[e].start == cell.vertices[f] && edges[e].end == cell.vertices[0])
+                        )
+                            cell.edges[f] = edges[e];
+                        /*
+                        if(
+                            (edges[e].end == cell.vertices[f] && edges[e].start == cell.vertices[f+1])||
+                            (edges[e].end == cell.vertices[f] && edges[e].start == cell.vertices[0])
+                        )
+                        */
+                            cell.edges[f+1] = edges[e];
+//                             ||
+//                            (edges[e].start == cell.vertices[f] && edges[e].end == cell.vertices[0])   ||
+//                            (edges[e].end == cell.vertices[f] && edges[e].start == cell.vertices[0])
+
+
+
+                    }
+
                 }
+
             }
 
             if(debugMode)
@@ -175,73 +196,86 @@ function Island (canvas_id, settings) {
             return color;
         },
 
-        showOrder = function(i){
-            i = i || 0 ;
-            var cc;
-            if(cc = v.cells[i]){
-                drawPoint(cc.centroid.x, cc.centroid.y, "#ccc")
-                setTimeout(function(){showOrder(i+1)},100);
-            } else return;
-        },
-
         trace = (function(context){
-            var c = context;
-            function traceText(text, x, y, color){
-                c.textBaseline="middle";
-                c.textAlign="center";
-                c.fillStyle = color || "#000";
-                c.fillText(text, x, y);
-            }
-            function tracePoint(x, y, color, text) {
-                text = text || '';
-                var size = text ? 10 : 3;
-                c.fillStyle = color;
-                c.beginPath();
-                c.arc(x, y, size, 0, Math.PI*2, true);
-                c.closePath();
-                c.fill();
-                if(text){
-                    c.fillStyle = '#fff';
-                    c.fillText(text, x, y);
-                }
-            }
-
-            function edge(start, end){
-                c.lineWidth = 0.1;
-                c.strokeStyle = "#000";
-                c.beginPath();
-                c.moveTo(start.x, start.y);
-                c.lineTo(end.x, end.y);
-                c.closePath();
-                c.stroke();
-            }
-
-            function traceEdges (a, b, delay){
-                (function recursive(i){
-                    var e = edges[i];
-                    if(e){
-                        edge(e[a], e[b]);
-                    }
-                    if(i < edges.length)
-                        if(delay)
-                            setTimeout(function(){recursive(i+1)}, delay);
-                        else
-                            recursive(i+1);
-                })(0);
-            };
-
-            var api = {
-                text        : traceText,
-                point       : tracePoint,
-                delaunay    : function (){traceEdges('left', 'right')},
-                voronoi     : function (){traceEdges('start', 'end')},
-                custom     : function (){
-                    traceEdges('start', 'right');
-                    traceEdges('left', 'end');
+            var
+                c = context,
+                traceOrder = function(i){
+                    i = i || 0 ;
+                    var cc;
+                    if(cc = v.cells[i]){
+                        drawPoint(cc.centroid.x, cc.centroid.y, "#f90", i+'')
+                        setTimeout(function(){traceOrder(i+1)},10);
+                    } else return;
                 },
-                order       : showOrder
-            }
 
+                traceCell = function(id) {
+                    (function recursive(j){
+                        var e = cells[id].edges[j];
+                        if(e){
+                            edge(e.start, e.end);
+                            edge(cells[id].edges[j].left, cells[id].edges[j].right);
+                            tracePoint(cells[id].edges[j].start.x, cells[id].edges[j].start.y, "#999", j+'');
+                        }
+                        var func = cells[id].edges[j] ? function(){setTimeout(function(){recursive(j+1)}, 100)} : function(){recursive(j+1);};
+                        if( j < cells[id].edges.length) func();
+                    })(0);
+                },
+
+                traceText = function(text, x, y, color){
+                    c.textBaseline="middle";
+                    c.textAlign="center";
+                    c.fillStyle = color || "#000";
+                    c.fillText(text, x, y);
+                },
+
+                tracePoint = function(x, y, color, text) {
+                    text = text || '';
+                    var size = text ? 10 : 3;
+                    c.fillStyle = color;
+                    c.beginPath();
+                    c.arc(x, y, size, 0, Math.PI*2, true);
+                    c.closePath();
+                    c.fill();
+                    if(text) traceText(text, x, y, '#fff');
+                },
+
+                edge = function(start, end){
+                    c.lineWidth = 0.1;
+                    c.strokeStyle = "#000";
+                    c.beginPath();
+                    c.moveTo(start.x, start.y);
+                    c.lineTo(end.x, end.y);
+                    c.closePath();
+                    c.stroke();
+                },
+
+                traceEdges = function(a, b, delay){
+                    (function recursive(i){
+                        var e = edges[i];
+                        if(e){
+                            edge(e[a], e[b]);
+                        }
+                        if(i < edges.length)
+                            if(delay)
+                                setTimeout(function(){recursive(i+1)}, delay);
+                            else
+                                recursive(i+1);
+                    })(0);
+                },
+
+                api = {
+                    text        : traceText,
+                    point       : tracePoint,
+                    delaunay    : function (){traceEdges('left', 'right')},
+                    voronoi     : function (){traceEdges('start', 'end')},
+                    custom     : function (){
+                        traceEdges('start', 'right');
+                        traceEdges('left', 'end');
+                    },
+                    order       : traceOrder,
+                    cell        : traceCell
+                }
+            ;
         //    if(!debugMode) for(var i in api) { api[i] = function(){}; } // does nothing if !debug
 
             return api;
