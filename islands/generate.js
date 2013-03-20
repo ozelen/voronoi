@@ -103,12 +103,7 @@ function Island (canvas_id, settings) {
                     //    console.log(cells[i].vs);
                     //    console.log(p);
                 }
-                c.fillStyle = "#094"; // colors[i];
-                c.beginPath();
-                c.moveTo(p[0].x, p[0].y);
-                for(var j=1; j<p.length; j++) c.lineTo(p[j].x, p[j].y);
-                c.closePath();
-                c.fill();
+
                 for (var f = 0; f < cell.vertices.length; f++){
                     var vertex = cell.vertices[f];
                     var next = (f < cell.vertices.length-1) ? cell.vertices[f+1] : cell.vertices[0];
@@ -132,7 +127,10 @@ function Island (canvas_id, settings) {
                     }
 
                 }
+            }
 
+            for(i in chosen){
+                drawCell(cells[chosen[i]]);
             }
 
             if(debugMode)
@@ -238,21 +236,25 @@ function Island (canvas_id, settings) {
                 }
             }
 
-
+            var prev_endpoint;
             (function recursive(i){
                 var e = cell.edges[i], r = e.rect, reverse = false;
-                //console.log(r);
                 if(i==0){
+                    reverse = !((cell.edges[i+1].start == e.end)||(cell.edges[i+1].end == e.end)); // if endpoint isn't common with next edge points, so this is reverse line
                     c.beginPath();
-                    c.moveTo(r.a.x, r.a.y);
+                    reverse
+                        ? c.moveTo(e.end.x, e.end.y)
+                        : c.moveTo(e.start.x, e.start.y);
                 }
                 else{
-                    reverse = !(cell.edges[i-1].rect.c == e.rect.a);
+                    reverse = !(prev_endpoint == e.start);
                     reverse
-                        ? c.lineTo(r.c.x, r.c.y)
-                        : c.lineTo(r.a.x, r.a.y)
+                        ? c.lineTo(e.end.x, e.end.y)
+                        : c.lineTo(e.start.x, e.start.y)
                     ;
                 }
+
+                prev_endpoint = reverse ? e.start : e.end; // store previous endpoint
 
                 //if(r.a.distanceTo(r.c) < r.h.distanceTo(r.d)){
                     reverse
@@ -265,9 +267,12 @@ function Island (canvas_id, settings) {
 //                }
 
                 if(i==cell.edges.length-1){
-                    c.lineWidth = 0.5;
-                    c.strokeStyle = 'black';
+                    c.lineWidth = 3;
+                    c.strokeStyle = '#083';
+                    c.fillStyle = '#008025';
+                    c.closePath();
                     c.stroke();
+                    c.fill();
                 }
                 if(i < cell.edges.length - 1) recursive(i+1);
             })(0)
