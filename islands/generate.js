@@ -21,6 +21,7 @@ function Island (canvas_id, settings) {
                 strokeStyle : '#a9cca4',
                 fillStyle   : '#a9cca4'
             },
+
             {
                 name        : 'GRASSLAND',
                 lineWidth   : 4,
@@ -33,13 +34,7 @@ function Island (canvas_id, settings) {
                 lineWidth   : 4,
                 strokeStyle : '#ddddbb',
                 fillStyle   : '#ddddbb'
-            }/*,
-            {
-                name        : 'SNOW',
-                lineWidth   : 4,
-                strokeStyle : '#f8f8f8',
-                fillStyle   : '#f8f8f8'
-            },*/
+            }
         ],
 
         init = function (new_settings) {
@@ -59,32 +54,19 @@ function Island (canvas_id, settings) {
         mouseX = function (e){	return e.clientX - e.target.offsetLeft;},
         mouseY = function(e){	return e.clientY - e.target.offsetTop; },
 
+        seed = function(w, h, num){
+            var arr = [];
+            for(var i=0; i<num; i++) {
+                arr.push(new Point(Math.random()*w, Math.random()*h));
+            }
+            return arr;
+        },
 
         seedPoints = function(){
-            for(var i=0; i<cellsNumber; i++) {
-                points.push(new Point(Math.random()*w, Math.random()*h));
-                colors.push(rndCol());
-            }
-
+            points = seed(w,h,cellsNumber);
             for(var i = 0; i<=pointsImprove; i++) {
                 improvePoints();
             }
-        },
-
-        onMouseMove = function(e) {
-            var last = points[points.length-1];
-            last.x = mouseX(e);
-            last.y = mouseY(e);
-            redraw();
-        },
-
-        onClick = function(e) {
-            var last = points[points.length-1];
-            last.x += Math.random();
-            last.y += Math.random();
-            points.push( new Point(mouseX(e), mouseY(e)));
-            colors.push(rndCol());
-            redraw();
         },
 
         resetPoints = function() {
@@ -103,31 +85,52 @@ function Island (canvas_id, settings) {
         },
 
         defineLand = function(settings){
-            var chosen = [], j=0;
-
-
+            var
+                chosen = [],
+                center = new Point(settings.x, settings.y),
+                j=0
+            ;
             // choose polygons within measures
             for(var i in cells) {
                 var cell = cells[i];
-                var center = new Point(settings.x, settings.y);
                 if(settings.r > center.distanceTo(cell.centroid)){
                     chosen[j++] = i;
-                    // linear approach setting altitude, the closer to the center the higher
-                    cell.altitude = Math.round(settings.r - center.distanceTo(cell.centroid));
                 }
             }
+
+            for (i in chosen){
+                // linear approach setting altitude, the closer to the center the higher
+                cell = cells[chosen[i]];
+                cell.altitude = Math.round(settings.r - center.distanceTo(cell.centroid));
+                cell.type = 'land';
+            }
+
             return chosen;
         },
 
 
         addIsland = function(island_settings){
-            var
-                chosen = defineLand(island_settings),
-                i = 0,
-                l = 0,
-                verticesByCells = [];
+            var chosen = defineLand(island_settings);
+            handleElements(chosen);
+            strokeCoastline();
+            drawCells(chosen);
+            return this;
+        },
 
-            for (i in chosen){
+        redraw = function(params){
+            c.fillStyle = "#343a5e";
+            c.fillRect (0, 0, w, h);
+        },
+
+        drawCells = function(chosen){
+            for(var i in chosen){
+                var cc = cells[chosen[i]];
+                drawCell(cells[chosen[i]], cellStyles[cellStyle(cc.altitude)]);
+            }
+        },
+
+        handleElements = function(chosen) {
+            for (var i in chosen){
                 var cell = cells[chosen[i]];
                 var p = cell.vertices;
                 if(p.length == 0) continue;
@@ -140,15 +143,15 @@ function Island (canvas_id, settings) {
                     var vertex = cell.vertices[f];
                     var next = (f < cell.vertices.length-1) ? cell.vertices[f+1] : cell.vertices[0];
                     var prev = (f > 0) ? cell.vertices[f-1] : cell.vertices[cell.vertices.length-1];
-                    verticesIndex.push({id: verticesIndex.length, next: next, prev: prev, cell: chosen[i], vertex: f, x: vertex.x, y: vertex.y});
+                    verticesIndex.push({id: verticesIndex.length, point:vertex, next: next, prev: prev, cell: chosen[i], vertex: f, x: vertex.x, y: vertex.y});
                     for(var e = 0; e < edges.length; e++){
                         if(
                             (edges[e].start == cell.vertices[f] && edges[e].end == cell.vertices[f+1])
-                          ||(edges[e].start == cell.vertices[f] && edges[e].end == cell.vertices[0])
-                          ||(edges[e].end == cell.vertices[f] && edges[e].start == cell.vertices[f+1])
-                          ||(edges[e].end == cell.vertices[f] && edges[e].start == cell.vertices[0])
+                                ||(edges[e].start == cell.vertices[f] && edges[e].end == cell.vertices[0])
+                                ||(edges[e].end == cell.vertices[f] && edges[e].start == cell.vertices[f+1])
+                                ||(edges[e].end == cell.vertices[f] && edges[e].start == cell.vertices[0])
                             ) {
-                            if(!(function(){ // check on duplicates
+                            if(!(function(){ // check duplicates
                                 for(var ed in cell.edges){ if(cell.edges[ed] == edges[e]) return true;  }
                                 return false;
                             })()) {
@@ -161,47 +164,25 @@ function Island (canvas_id, settings) {
                 }
             }
 
+            indexNeighbours();
+        },
 
-            for(i in chosen){
-                var cc = cells[chosen[i]];
-                drawCell(cells[chosen[i]], cellStyles[cellStyle(cc.altitude)]);
-                //trace.text(cellStyle(cc.altitude), cc.centroid.x, cc.centroid.y, 'black');
-            }
-
-            if(debugMode)
-                for (var i in cells){ trace.text(i, cells[i].centroid.x, cells[i].centroid.y); }
-
+        indexNeighbours = function() {
             for (var v_i = 0; v_i < verticesIndex.length; v_i++) {
-                //console.log(verticesIndex[v_i])
-                if(!verticesIndex[v_i]) continue;
                 var dubs = [];
                 for (var v_j = 0; v_j < verticesIndex.length; v_j++) {
                     if(!verticesIndex[v_j] || !verticesIndex[v_i] || v_i == v_j || verticesIndex[v_i].cell == verticesIndex[v_j].cell) continue;
-                    if(verticesIndex[v_i].x == verticesIndex[v_j].x && verticesIndex[v_i].y == verticesIndex[v_j].y){
+                    if(verticesIndex[v_i].point == verticesIndex[v_j].point){
                         dubs.push(v_j);
                     }
                 }
                 verticesIndex[v_i].neighbours = dubs.length;
-
                 if(dubs.length == 1) {
                     verticesIndex[v_i].neighbour = verticesIndex[dubs[0]];
+                    //console.log('coast');
                 }
-
                 //drawPoint(verticesIndex[v_i].x, verticesIndex[v_i].y, 'red', verticesIndex[v_i].neighbours+'');
-
             }
-
-            for(var i in verticesIndex){
-                if(!verticesIndex[i]) continue;
-                //drawPoint(verticesIndex[i].next.x, verticesIndex[i].next.y, 'red', verticesIndex[i].cell);
-            }
-
-            return this;
-        },
-
-        redraw = function(params){
-            c.fillStyle = "#343a5e";
-            c.fillRect (0, 0, w, h);
         },
 
         improvePoints = function(){
@@ -318,6 +299,37 @@ function Island (canvas_id, settings) {
             })(0)
         },
 
+        strokeCoastline = function() {
+            var island_cell = {edges: []};
+            for(var i in cells) {
+                var cell = cells[i];
+                if(cell.type){
+                    for(var j in cell.edges){
+                        var e = cell.edges[j], n = 0;
+                        for(var k in verticesIndex){
+                            var v = verticesIndex[k];
+                            if(v.neighbour && (e.start == v.point || e.end == v.point)){
+                                n++;
+                            }
+                        }
+
+                        if(n<5) {
+                            island_cell.edges.push(e);
+                            trace.edge(e.start, e.end);
+                        }
+                        //if(cells[j].edges[i].rect.a)
+                    }
+                }
+            }
+
+            drawCell(island_cell, {
+                lineWidth   : 10,
+                strokeStyle : '#1b1f33',
+                fillStyle   : '#1b1f33'
+            });
+
+
+        },
 
         cellStyle = function(altitude){
             var
