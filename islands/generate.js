@@ -109,36 +109,26 @@ function Island (canvas_id, settings) {
                 for(var j=1; j<p.length; j++) c.lineTo(p[j].x, p[j].y);
                 c.closePath();
                 c.fill();
-
-                //trace.text("("+i+")", cell.centroid.x+20, cell.centroid.y, "#000");
-
                 for (var f = 0; f < cell.vertices.length; f++){
                     var vertex = cell.vertices[f];
                     var next = (f < cell.vertices.length-1) ? cell.vertices[f+1] : cell.vertices[0];
                     var prev = (f > 0) ? cell.vertices[f-1] : cell.vertices[cell.vertices.length-1];
                     verticesIndex.push({id: verticesIndex.length, next: next, prev: prev, cell: chosen[i], vertex: f, x: vertex.x, y: vertex.y});
-                    //console.log(verticesIndex[verticesIndex.length-1]);
-                    //drawPoint(vertex.x, vertex.y, "red", f);
-
                     for(var e = 0; e < edges.length; e++){
                         if(
                             (edges[e].start == cell.vertices[f] && edges[e].end == cell.vertices[f+1])
                           ||(edges[e].start == cell.vertices[f] && edges[e].end == cell.vertices[0])
-                        )
-                            cell.edges[f] = edges[e];
-                        /*
-                        if(
-                            (edges[e].end == cell.vertices[f] && edges[e].start == cell.vertices[f+1])||
-                            (edges[e].end == cell.vertices[f] && edges[e].start == cell.vertices[0])
-                        )
-                        */
-                            cell.edges[f+1] = edges[e];
-//                             ||
-//                            (edges[e].start == cell.vertices[f] && edges[e].end == cell.vertices[0])   ||
-//                            (edges[e].end == cell.vertices[f] && edges[e].start == cell.vertices[0])
-
-
-
+                          ||(edges[e].end == cell.vertices[f] && edges[e].start == cell.vertices[f+1])
+                          ||(edges[e].end == cell.vertices[f] && edges[e].start == cell.vertices[0])
+                            ) {
+                            if(!(function(){ // check on duplicates
+                                for(var ed in cell.edges){ if(cell.edges[ed] == edges[e]) return true;  }
+                                return false;
+                            })()) {
+                                cell.edges.push(edges[e]);
+                                addNoise(edges[e]);
+                            }
+                        }
                     }
 
                 }
@@ -172,6 +162,7 @@ function Island (canvas_id, settings) {
                 if(!verticesIndex[i]) continue;
                 //drawPoint(verticesIndex[i].next.x, verticesIndex[i].next.y, 'red', verticesIndex[i].cell);
             }
+
             return this;
         },
 
@@ -186,6 +177,107 @@ function Island (canvas_id, settings) {
                 points[i] = v.cells[i].centroid;
             }
         },
+
+        addNoise = function (edge) {
+            // Convenience: random number in a range
+            function random(low, high) {
+                return low + (high-low) * Math.random();
+            }
+
+            // Interpolate between two points
+            function interpolate (p, q, f) {
+                var point = new Point(0,0);
+                return point.interpolate(p, q, 1.0-f);
+            }
+
+            function drawLine (A,B,C,D){
+
+                var
+                // Subdivide the quadrilateral
+                    p = random(0.3, 0.7),
+                    q = random(0.3, 0.7),
+
+                // midpoints
+                    E = interpolate(A, D, p),
+                    F = interpolate(B, C, p),
+                    G = interpolate(A, B, q),
+                    I = interpolate(D, C, q),
+
+                // Central point
+                    H =  interpolate(E, F, q),
+                    s = random(-0.4, 0.4),
+                    t = random(-0.4, 0.4)
+                    ;
+
+                return {
+                    a: A,
+                    b: B,
+                    c: C,
+                    d: D,
+                    e: E,
+                    f: F,
+                    g: G,
+                    h: H,
+                    i: I
+                }
+/*
+                 return drawLine(A, interpolate(G, B, s), H, interpolate(E, D, t))
+                 + drawLine(H, interpolate(F, C, s), C, interpolate(I, D, t));
+*/
+            }
+
+            edge.rect = drawLine(edge.start, edge.right, edge.end, edge.left);
+
+            return this;
+        },
+
+        drawCell = function(cell) {
+            function reverseRect(r){
+                return {
+                    a:r.d, b:r.c, c:r.b, d:r.a, e:r.f, f:r.e, g:r.i, h:r.h, i:r.g
+                }
+            }
+
+
+            (function recursive(i){
+                var e = cell.edges[i], r = e.rect, reverse = false;
+                //console.log(r);
+                if(i==0){
+                    c.beginPath();
+                    c.moveTo(r.a.x, r.a.y);
+                }
+                else{
+                    reverse = !(cell.edges[i-1].rect.c == e.rect.a);
+                    reverse
+                        ? c.lineTo(r.c.x, r.c.y)
+                        : c.lineTo(r.a.x, r.a.y)
+                    ;
+                }
+
+                //if(r.a.distanceTo(r.c) < r.h.distanceTo(r.d)){
+                    reverse
+                        ? c.bezierCurveTo(r.f.x, r.f.y, r.e.x, r.e.y, r.a.x, r.a.y)
+                        : c.bezierCurveTo(r.e.x, r.e.y, r.f.x, r.f.y, r.c.x, r.c.y)
+                    ;
+//                } else {
+//                    c.bezierCurveTo(r.e.x, r.e.y, r.g.x, r.g.y, r.h.x, r.h.y);
+//                    c.bezierCurveTo(r.i.x, r.i.y, r.f.x, r.f.y, r.c.x, r.c.y);
+//                }
+
+                if(i==cell.edges.length-1){
+                    c.lineWidth = 0.5;
+                    c.strokeStyle = 'black';
+                    c.stroke();
+                }
+                if(i < cell.edges.length - 1) recursive(i+1);
+            })(0)
+
+
+
+
+
+        }
+
 
         rndCol = function() {
             var letters = '0123456789ABCDEF'.split('');
@@ -209,16 +301,27 @@ function Island (canvas_id, settings) {
                 },
 
                 traceCell = function(id) {
+                    drawCell(cells[id]);
+                    /*
                     (function recursive(j){
                         var e = cells[id].edges[j];
                         if(e){
+
                             edge(e.start, e.end);
                             edge(cells[id].edges[j].left, cells[id].edges[j].right);
-                            tracePoint(cells[id].edges[j].start.x, cells[id].edges[j].start.y, "#999", j+'');
+                            var mid  = new Point(
+                                e.start.x + (e.end.x - e.start.x) / 2 ,
+                                e.start.y + (e.end.y - e.start.y) / 2
+                            );
+                            tracePoint(mid.x, mid.y, "#999", j+'');
+
+
+                            addNoise(e);
                         }
-                        var func = cells[id].edges[j] ? function(){setTimeout(function(){recursive(j+1)}, 100)} : function(){recursive(j+1);};
+                        var func = cells[id].edges[j] ? function(){setTimeout(function(){recursive(j+1)}, 500)} : function(){recursive(j+1);};
                         if( j < cells[id].edges.length) func();
                     })(0);
+                    */
                 },
 
                 traceText = function(text, x, y, color){
@@ -240,7 +343,8 @@ function Island (canvas_id, settings) {
                 },
 
                 edge = function(start, end){
-                    c.lineWidth = 0.1;
+                    //alert(start+ ' ' +end);
+                    c.lineWidth = 0.5;
                     c.strokeStyle = "#000";
                     c.beginPath();
                     c.moveTo(start.x, start.y);
@@ -268,10 +372,11 @@ function Island (canvas_id, settings) {
                     point       : tracePoint,
                     delaunay    : function (){traceEdges('left', 'right')},
                     voronoi     : function (){traceEdges('start', 'end')},
-                    custom     : function (){
+                    custom      : function (){
                         traceEdges('start', 'right');
                         traceEdges('left', 'end');
                     },
+                    edge        : edge,
                     order       : traceOrder,
                     cell        : traceCell
                 }
