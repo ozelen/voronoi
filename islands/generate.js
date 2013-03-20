@@ -14,6 +14,34 @@ function Island (canvas_id, settings) {
         h = canvas.height = 500, // = window.innerHeight,
         points = [],
 
+        cellStyles = [
+            {
+                name        : 'TROPICAL SEASONAL FOREST',
+                lineWidth   : 4,
+                strokeStyle : '#a9cca4',
+                fillStyle   : '#a9cca4'
+            },
+            {
+                name        : 'GRASSLAND',
+                lineWidth   : 4,
+                strokeStyle : '#c4d4aa',
+                fillStyle   : '#c4d4aa'
+            },
+
+            {
+                name        : 'TUNDRA',
+                lineWidth   : 4,
+                strokeStyle : '#ddddbb',
+                fillStyle   : '#ddddbb'
+            }/*,
+            {
+                name        : 'SNOW',
+                lineWidth   : 4,
+                strokeStyle : '#f8f8f8',
+                fillStyle   : '#f8f8f8'
+            },*/
+        ],
+
         init = function (new_settings) {
             if(new_settings) for(var i in new_settings){ settings[i]=new_settings[i]; }
             cellsNumber = settings.cells || 100;
@@ -74,14 +102,18 @@ function Island (canvas_id, settings) {
             cells = v.GetCells();
         },
 
-        chooseCells = function(settings){
+        defineLand = function(settings){
             var chosen = [], j=0;
+
+
             // choose polygons within measures
             for(var i in cells) {
                 var cell = cells[i];
-                var center = cells[i].centroid;
-                if(settings.r > center.distance(new Point(settings.x, settings.y), center)){
+                var center = new Point(settings.x, settings.y);
+                if(settings.r > center.distanceTo(cell.centroid)){
                     chosen[j++] = i;
+                    // linear approach setting altitude, the closer to the center the higher
+                    cell.altitude = Math.round(settings.r - center.distanceTo(cell.centroid));
                 }
             }
             return chosen;
@@ -90,7 +122,7 @@ function Island (canvas_id, settings) {
 
         addIsland = function(island_settings){
             var
-                chosen = chooseCells(island_settings),
+                chosen = defineLand(island_settings),
                 i = 0,
                 l = 0,
                 verticesByCells = [];
@@ -129,8 +161,11 @@ function Island (canvas_id, settings) {
                 }
             }
 
+
             for(i in chosen){
-                drawCell(cells[chosen[i]]);
+                var cc = cells[chosen[i]];
+                drawCell(cells[chosen[i]], cellStyles[cellStyle(cc.altitude)]);
+                //trace.text(cellStyle(cc.altitude), cc.centroid.x, cc.centroid.y, 'black');
             }
 
             if(debugMode)
@@ -165,7 +200,7 @@ function Island (canvas_id, settings) {
         },
 
         redraw = function(params){
-            c.fillStyle = "#ffffff";
+            c.fillStyle = "#343a5e";
             c.fillRect (0, 0, w, h);
         },
 
@@ -229,7 +264,7 @@ function Island (canvas_id, settings) {
             return this;
         },
 
-        drawCell = function(cell) {
+        drawCell = function(cell, type) {
             function reverseRect(r){
                 return {
                     a:r.d, b:r.c, c:r.b, d:r.a, e:r.f, f:r.e, g:r.i, h:r.h, i:r.g
@@ -255,7 +290,7 @@ function Island (canvas_id, settings) {
                 }
 
                 prev_endpoint = reverse ? e.start : e.end; // store previous endpoint
-
+                if(r){
                 //if(r.a.distanceTo(r.c) < r.h.distanceTo(r.d)){
                     reverse
                         ? c.bezierCurveTo(r.f.x, r.f.y, r.e.x, r.e.y, r.a.x, r.a.y)
@@ -265,24 +300,32 @@ function Island (canvas_id, settings) {
 //                    c.bezierCurveTo(r.e.x, r.e.y, r.g.x, r.g.y, r.h.x, r.h.y);
 //                    c.bezierCurveTo(r.i.x, r.i.y, r.f.x, r.f.y, r.c.x, r.c.y);
 //                }
+                } else {
+                    reverse
+                        ? c.lineTo(e.start.x, e.start.y)
+                        : c.lineTo(e.end.x, e.end.y)
+                }
 
                 if(i==cell.edges.length-1){
-                    c.lineWidth = 3;
-                    c.strokeStyle = '#083';
-                    c.fillStyle = '#008025';
+                    c.lineWidth = type.lineWidth;
+                    c.strokeStyle = type.strokeStyle;
+                    c.fillStyle = type.fillStyle;
                     c.closePath();
                     c.stroke();
                     c.fill();
                 }
                 if(i < cell.edges.length - 1) recursive(i+1);
             })(0)
+        },
 
 
-
-
-
-        }
-
+        cellStyle = function(altitude){
+            var
+                m = 200/cellStyles.length,
+                p = Math.round(altitude/m);
+            ;
+            return p;
+        },
 
         rndCol = function() {
             var letters = '0123456789ABCDEF'.split('');
