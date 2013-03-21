@@ -15,8 +15,8 @@
     <script type="text/javascript" src="lib/VQueue.js"></script>
     <script type="text/javascript" src="lib/VPolygon.js"></script>
     <script type="text/javascript" src="lib/Voronoi.js"></script>
-    <script type="application/javascript" src="islands/trace.js"></script>
     <script type="application/javascript" src="islands/generate.js"></script>
+    <script type="application/javascript" src="islands/trace.js"></script>
     <script type="application/javascript" src="islands/Island.js"></script>
     <script type="application/javascript">
         var island;
@@ -34,6 +34,9 @@
 
 <body>
 <form style="position:absolute; margin-left: 500px">
+
+    <!--
+
     <fieldset>
         <legend>Trace</legend>
         <input type="button" onclick="island.trace.voronoi();" id="cvor" value="Voronoi"/>
@@ -41,7 +44,7 @@
         <input type="button" onclick="island.trace.custom();" id="cdel" value="Custom"/>
         <input type="button" onclick="island.trace.order();" value="Show Order">
     </fieldset>
-    <!--
+
     <fieldset>
         <legend>Cell edges</legend>
         <input id="cell_id" type="text">
