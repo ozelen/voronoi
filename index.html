@@ -15,11 +15,13 @@
     <script type="text/javascript" src="lib/VQueue.js"></script>
     <script type="text/javascript" src="lib/VPolygon.js"></script>
     <script type="text/javascript" src="lib/Voronoi.js"></script>
+    <script type="application/javascript" src="islands/trace.js"></script>
     <script type="application/javascript" src="islands/generate.js"></script>
+    <script type="application/javascript" src="islands/Island.js"></script>
     <script type="application/javascript">
         var island;
         window.onload = function(){
-                island = new Island("c", {cells:200, naturalize:10});
+                island = new IslandFactory("c", {cells:1000, naturalize:10});
             island
                     .add({
                         x: 250,
@@ -39,16 +41,19 @@
         <input type="button" onclick="island.trace.custom();" id="cdel" value="Custom"/>
         <input type="button" onclick="island.trace.order();" value="Show Order">
     </fieldset>
+    <!--
     <fieldset>
         <legend>Cell edges</legend>
         <input id="cell_id" type="text">
         <input type="button" value="Show" onclick="island.trace.cell(document.getElementById('cell_id').value)">
     </fieldset>
+
     <fieldset>
         <legend>Compute</legend>
         <input type="button" value="Rebuild" onclick="island.init({cells:10, naturalize:document.getElementById('naturalize').value}).reset();">
         <input type="button" value="Reset" onclick="island.reset();"/>
     </fieldset>
+
     <fieldset><legend>Add Island</legend>
         R:<input id="r" type="text"><br>
         X:<input id="x" type="text"><br>
@@ -56,7 +61,7 @@
         <br>
         <input type="button" value="Add Island" onclick="island.add({x:document.getElementById('x').value, y:document.getElementById('y').value, r:document.getElementById('r').value})">
     </fieldset>
-
+    -->
 
 </form>
 <canvas id="c"> </canvas>
